@@ -138,12 +138,13 @@ class FacebookRedirectLoginHelper
           FacebookSession::_getTargetAppSecret($this->appSecret),
         'code' => $this->getCode()
       );
-      $response = (new FacebookRequest(
+      $facebookRequest = new FacebookRequest(
         FacebookSession::newAppSession($this->appId, $this->appSecret),
         'GET',
         '/oauth/access_token',
         $params
-      ))->execute()->getResponse();
+      );
+      $response = $facebookRequest->execute()->getResponse();
       if (isset($response['access_token'])) {
         return new FacebookSession($response['access_token']);
       }
@@ -184,7 +185,7 @@ class FacebookRedirectLoginHelper
   protected function storeState($state)
   {
     if ($this->checkForSessionStatus === true
-      && session_status() !== PHP_SESSION_ACTIVE) {
+      && !$this->sessionStatus()) {
       throw new FacebookSDKException(
         'Session not active, could not store state.', 720
       );
@@ -204,7 +205,7 @@ class FacebookRedirectLoginHelper
   protected function loadState()
   {
     if ($this->checkForSessionStatus === true
-      && session_status() !== PHP_SESSION_ACTIVE) {
+      && !$this->sessionStatus()) {
       throw new FacebookSDKException(
         'Session not active, could not load state.', 721
       );
@@ -275,4 +276,11 @@ class FacebookRedirectLoginHelper
     $this->checkForSessionStatus = false;
   }
 
+  private function sessionStatus() {
+    if ( version_compare(phpversion(), '5.4.0', '>=') ) {
+      return session_status() === PHP_SESSION_ACTIVE ? TRUE : FALSE;
+    } else {
+      return session_id() === '' ? FALSE : TRUE;
+    }
+  }
 }
